@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CutMy 订单管理系统</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #F5F5F5;
+            color: #1B1B1B;
+        }
+        .navbar {
+            background: #2D6A4F;
+            color: #fff;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .navbar h1 { font-size: 18px; }
+        .refresh-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .refresh-btn:hover { background: rgba(255,255,255,0.35); }
+        .back-link {
+            display: inline-block;
+            margin: 12px 16px;
+            color: #2D6A4F;
+            text-decoration: none;
+            font-size: 13px;
+        }
+        .filter-bar {
+            background: #fff;
+            padding: 10px 16px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            border-bottom: 1px solid #EAE0D8;
+        }
+        .filter-btn {
+            border: 1.5px solid #EAE0D8;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #fff;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .filter-btn.active {
+            border-color: #E05C3A;
+            background: #FEF0EB;
+            color: #E05C3A;
+        }
+        .order-list {
+            padding: 16px;
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .order-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #EAE0D8;
+            overflow: hidden;
+            transition: box-shadow .2s;
+        }
+        .order-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .order-header {
+            background: #FAFAFA;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #EAE0D8;
+        }
+        .order-id { font-weight: 900; color: #2D6A4F; font-family: monospace; font-size: 14px; }
+        .order-date { font-size: 12px; color: #6B7280; margin-left: auto; }
+        .status-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        .status-pending { background: #FEF3C7; color: #92400E; }
+        .status-paid { background: #D1FAE5; color: #065F46; }
+        .status-confirmed { background: #D8F3DC; color: #2D6A4F; }
+        .status-completed { background: #D8F3DC; color: #2D6A4F; }
+        .order-body { padding: 14px 16px; }
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #F0F0F0;
+        }
+        .order-row:last-child { border-bottom: none; }
+        .order-actions {
+            padding: 10px 16px 14px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-top: 1px solid #EAE0D8;
+        }
+        .action-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .action-btn:active { transform: scale(0.97); }
+        .btn-primary { background: #E05C3A; color: #fff; }
+        .btn-primary:hover { opacity: .85; }
+        .btn-secondary { background: #D8F3DC; color: #2D6A4F; }
+        .btn-secondary:hover { background: #52B788; color: #fff; }
+        .btn-ghost { background: #F5F5F5; color: #6B7280; border: 1px solid #EAE0D8; }
+        .btn-ghost:hover { border-color: #E05C3A; color: #E05C3A; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #6B7280; }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2D6A4F;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: all .3s;
+            pointer-events: none;
+            z-index: 999;
+            font-size: 14px;
+        }
+        .toast.show { opacity: 1; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #EAE0D8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body { padding: 20px; }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .stats {
+            display: flex;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #fff;
+            margin: 12px 16px;
+            border-radius: 12px;
+        }
+        .stat-card {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            background: #F8F9FA;
+            border-radius: 10px;
+        }
+        .stat-number { font-size: 24px; font-weight: 900; color: #2D6A4F; }
+        .stat-label { font-size: 11px; color: #6B7280; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>🌿 CutMy 订单管理</h1>
+        <button class="refresh-btn" onclick="loadOrders()">🔄</button>
+    </div>
+    <a href="/" class="back-link">← 返回报价工具</a>
+
+    <!-- 统计卡片 -->
+    <div class="stats" id="stats"></div>
+
+    <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">全部</button>
+        <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">待处理</button>
+        <button class="filter-btn" data-filter="paid" onclick="setFilter('paid')">已支付</button>
+        <button class="filter-btn" data-filter="confirmed" onclick="setFilter('confirmed')">已确认</button>
+        <button class="filter-btn" data-filter="completed" onclick="setFilter('completed')">已完成</button>
+    </div>
+
+    <div class="order-list" id="order-list"></div>
+
+    <!-- 订单详情模态框 -->
+    <div class="modal" id="detail-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>订单详情</h3>
+                <button class="close-modal" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="detail-content"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let orders = [];
+        let currentFilter = 'all';
+
+        async function loadOrders() {
+            try {
+                const res = await fetch('/api/orders');
+                orders = await res.json();
+                updateStats();
+                renderOrders();
+            } catch (err) {
+                showToast('加载失败，请确保后端服务已启动');
+                console.error(err);
+            }
+        }
+
+        function updateStats() {
+            const stats = {
+                all: orders.length,
+                pending: orders.filter(o => o.status === 'pending').length,
+                paid: orders.filter(o => o.status === 'paid').length,
+                confirmed: orders.filter(o => o.status === 'confirmed').length,
+                completed: orders.filter(o => o.status === 'completed').length
+            };
+            document.getElementById('stats').innerHTML = `
+                <div class="stat-card"><div class="stat-number">${stats.all}</div><div class="stat-label">总订单</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.pending}</div><div class="stat-label">待处理</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.paid}</div><div class="stat-label">已支付</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.confirmed}</div><div class="stat-label">已确认</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.completed}</div><div class="stat-label">已完成</div></div>
+            `;
+        }
+
+        function getStatusText(status) {
+            const map = { pending: '待处理', paid: '已支付', confirmed: '已确认', completed: '已完成' };
+            return map[status] || status;
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+        }
+
+        function renderOrders() {
+            const filtered = currentFilter === 'all'
+                ? orders
+                : orders.filter(o => o.status === currentFilter);
+
+            const list = document.getElementById('order-list');
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="empty-state">📦 暂无订单</div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(order => {
+                const processing = order.processing || {};
+                const items = processing.items || [];
+                const itemCount = items.length;
+
+                return `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div class="order-id">${order.order_id}</div>
+                            <span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>
+                            <div class="order-date">${formatDate(order.created_at)}</div>
+                        </div>
+                        <div class="order-body">
+                            <div class="order-row">
+                                <span>客户</span>
+                                <span><strong>${order.client_name || '—'}</strong> ${order.client_contact ? '· ' + order.client_contact : ''}</span>
+                            </div>
+                            <div class="order-row">
+                                <span>产品</span>
+                                <span>${itemCount}块板材 · ${order.material_name || '—'}</span>
+                            </div>
+                            <div class="order-row">
+                                <span>预估金额</span>
+                                <span style="color:#E05C3A;font-weight:700;">¥${order.estimated_price || '0'}</span>
+                            </div>
+                        </div>
+                        <div class="order-actions">
+                            <button class="action-btn btn-secondary" onclick="viewOrder('${order.order_id}')">查看详情</button>
+                            ${order.status === 'pending' ? `<button class="action-btn btn-primary" onclick="updateStatus('${order.order_id}', 'paid')">标记已支付</button>` : ''}
+                            ${order.status === 'paid' ? `<button class="action-btn btn-primary" onclick="updateStatus('${order.order_id}', 'confirmed')">确认生产</button>` : ''}
+                            ${order.status === 'confirmed' ? `<button class="action-btn btn-secondary" onclick="updateStatus('${order.order_id}', 'completed')">标记完成</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function updateStatus(orderId, newStatus) {
+            try {
+                const res = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.ok) {
+                    showToast(`✅ 订单已更新为 ${getStatusText(newStatus)}`);
+                    loadOrders();
+                } else {
+                    showToast('更新失败', true);
+                }
+            } catch (err) {
+                showToast('网络错误', true);
+            }
+        }
+
+        async function viewOrder(orderId) {
+            try {
+                const res = await fetch(`/api/orders/${orderId}`);
+                const order = await res.json();
+
+                const processing = order.processing || {};
+                const items = processing.items || [];
+
+                let itemsHtml = '';
+                items.forEach((item, idx) => {
+                    itemsHtml += `
+                        <div style="border-bottom: 1px solid #EAE0D8; padding: 10px 0;">
+                            <strong>板材 ${idx + 1}</strong><br>
+                            ${item.length}×${item.width}mm × ${item.qty}块<br>
+                            材料: ${item.material || '—'}<br>
+                            ${item.drill ? `钻孔: ${item.drill}个 · ` : ''}
+                            ${item.edge ? '封边: 是 · ' : ''}
+                            ${item.sand ? `砂光: ${item.sand === 'double' ? '双面' : '单面'} · ` : ''}
+                            ${item.coat ? `涂装: ${item.coat === 'double' ? '双面' : '单面'}` : ''}
+                        </div>
+                    `;
+                });
+
+                document.getElementById('detail-content').innerHTML = `
+                    <div><strong>订单号</strong><br>${order.order_id}</div>
+                    <div style="margin-top: 12px;"><strong>客户信息</strong><br>${order.client_name || '—'} ${order.client_contact ? '(' + order.client_contact + ')' : ''}</div>
+                    <div style="margin-top: 12px;"><strong>下单时间</strong><br>${formatDate(order.created_at)}</div>
+                    <div style="margin-top: 12px;"><strong>订单状态</strong><br><span class="status-badge status-${order.status}">${getStatusText(order.status)}</span></div>
+                    <div style="margin-top: 12px;"><strong>产品明细</strong></div>
+                    ${itemsHtml}
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #EAE0D8;">
+                        <strong>预估总价: ¥${order.estimated_price || '0'}</strong>
+                    </div>
+                `;
+                document.getElementById('detail-modal').classList.add('show');
+            } catch (err) {
+                showToast('加载详情失败', true);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').classList.remove('show');
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.filter-btn[data-filter="${filter}"]`).classList.add('active');
+            renderOrders();
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        loadOrders();
+        setInterval(loadOrders, 30000);
+    </script>
+</body>
+</html>

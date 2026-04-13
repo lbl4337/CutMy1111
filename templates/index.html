@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CutMy 木材定制报价 | 在线计算器</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #FDF8F4;
+            color: #1B1B1B;
+            padding: 20px 14px 100px;
+            max-width: 550px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #EAE0D8;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .card-header {
+            background: #FFF8F5;
+            padding: 12px 14px;
+            border-bottom: 1px solid #EAE0D8;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-body { padding: 14px; }
+        .form-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .form-row > * { flex: 1; min-width: 100px; }
+        input, select, textarea {
+            border: 1.5px solid #EAE0D8;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 14px;
+            width: 100%;
+            background: #fff;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #E05C3A;
+            outline: none;
+        }
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+            text-align: center;
+            font-size: 14px;
+        }
+        .btn-primary { background: #E05C3A; color: #fff; }
+        .btn-primary:hover { opacity: .85; transform: scale(0.98); }
+        .btn-secondary { background: #D8F3DC; color: #2D6A4F; }
+        .btn-outline {
+            border: 2px dashed #EAE0D8;
+            background: #fff;
+            color: #2D6A4F;
+            width: 100%;
+        }
+        .btn-outline:hover { border-color: #E05C3A; color: #E05C3A; }
+        .price { color: #E05C3A; font-weight: 800; font-size: 18px; }
+        .badge {
+            background: #D8F3DC;
+            color: #2D6A4F;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #999;
+            padding: 0 8px;
+        }
+        .delete-btn:hover { color: #E05C3A; }
+        .toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2D6A4F;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: all .3s;
+            pointer-events: none;
+            z-index: 999;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #DC2626; }
+        .admin-link {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #EAE0D8;
+        }
+        .admin-link a {
+            color: #2D6A4F;
+            text-decoration: none;
+            font-size: 13px;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .checkbox-label input { width: auto; }
+        .item-subtotal {
+            text-align: right;
+            border-top: 1px solid #EAE0D8;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        h1 { font-size: 24px; color: #2D6A4F; margin-bottom: 4px; }
+        .subtitle { color: #6B7280; margin-bottom: 20px; font-size: 13px; }
+        .ship-options { display: flex; gap: 10px; }
+        .ship-option {
+            flex: 1;
+            border: 2px solid #EAE0D8;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .ship-option.selected {
+            border-color: #E05C3A;
+            background: #FEF0EB;
+        }
+        .ship-option .name { font-weight: 700; font-size: 13px; }
+        .ship-option .price { font-size: 11px; }
+        .result-card {
+            background: linear-gradient(135deg, #C1440E, #7C2D12);
+            color: #fff;
+            text-align: center;
+        }
+        .result-card .total-price {
+            font-size: 48px;
+            font-weight: 900;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌿 CutMy 报价工具</h1>
+    <div class="subtitle">多板配置 · 透明计价 · 一键提交订单</div>
+
+    <!-- 客户信息 -->
+    <div class="card">
+        <div class="card-header">👤 客户信息</div>
+        <div class="card-body">
+            <div class="form-row">
+                <input type="text" id="client-name" placeholder="客户姓名 *">
+                <input type="text" id="client-contact" placeholder="联系方式（选填）">
+            </div>
+        </div>
+    </div>
+
+    <!-- 板材列表 -->
+    <div id="items-container"></div>
+
+    <!-- 添加板材 -->
+    <button class="btn btn-outline" onclick="addItem()">+ 添加板材</button>
+
+    <!-- 运费 -->
+    <div class="card">
+        <div class="card-header">🚚 运费</div>
+        <div class="card-body">
+            <div class="ship-options" id="ship-options">
+                <div class="ship-option selected" data-ship="18" onclick="setShipCost(18)">
+                    <div class="name">普通快递</div>
+                    <div class="price">¥18起</div>
+                </div>
+                <div class="ship-option" data-ship="0" onclick="setShipCost(0)">
+                    <div class="name">自提</div>
+                    <div class="price">免运费</div>
+                </div>
+                <div class="ship-option" data-ship="custom" onclick="setShipCost('custom')">
+                    <div class="name">大件物流</div>
+                    <div class="price">联系确认</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 总价 -->
+    <div class="card result-card">
+        <div class="card-body">
+            <div style="font-size: 14px; opacity: 0.8;">预估总价</div>
+            <div class="total-price">¥<span id="total-price">0</span></div>
+        </div>
+    </div>
+
+    <!-- 提交按钮 -->
+    <button class="btn btn-primary" style="width: 100%;" onclick="submitOrder()">📦 提交订单</button>
+
+    <div class="admin-link">
+        <a href="/admin">📋 进入订单管理 →</a>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let items = [];
+        let nextId = 1;
+        let shipCost = 18;
+        let materials = {};
+
+        // 加载材料数据
+        async function loadMaterials() {
+            const res = await fetch('/api/materials');
+            materials = await res.json();
+        }
+
+        // 添加板材
+        function addItem() {
+            items.push({
+                id: nextId++,
+                material: 'birch15',
+                length: 600,
+                width: 400,
+                qty: 1,
+                drill: 0,
+                round: 0,
+                edge: false,
+                sand: null,
+                coat: null
+            });
+            renderItems();
+        }
+
+        // 删除板材
+        function removeItem(id) {
+            items = items.filter(i => i.id !== id);
+            renderItems();
+        }
+
+        // 更新板材属性
+        function updateItem(id, field, value) {
+            const item = items.find(i => i.id === id);
+            if (item) {
+                item[field] = value;
+                calculateTotal();
+                renderItems(); // 重新渲染以更新显示
+            }
+        }
+
+        // 计算单块板材价格
+        function calculateItemPrice(item) {
+            const material = materials[item.material] || { price: 130 };
+            const area = (item.length / 1000) * (item.width / 1000) * item.qty;
+            const materialCost = material.price * area;
+
+            let processCost = 0;
+
+            // 钻孔
+            processCost += (item.drill || 0) * 3 * item.qty;
+
+            // 圆角
+            processCost += (item.round || 0) * 5 * item.qty;
+
+            // 封边
+            if (item.edge) {
+                const perimeter = ((item.length + item.width) / 1000) * 2;
+                processCost += perimeter * 10 * item.qty;
+            }
+
+            // 砂光
+            if (item.sand) {
+                const sandPrice = item.sand === 'double' ? 14 : 10;
+                processCost += area * sandPrice;
+            }
+
+            // 涂装
+            if (item.coat) {
+                const coatPrice = item.coat === 'double' ? 100 : 50;
+                processCost += area * coatPrice;
+            }
+
+            return {
+                materialCost: materialCost,
+                processCost: processCost,
+                total: materialCost + processCost,
+                area: area
+            };
+        }
+
+        // 计算总价
+        function calculateTotal() {
+            let total = 0;
+            items.forEach(item => {
+                total += calculateItemPrice(item).total;
+            });
+            if (shipCost !== 'custom') {
+                total += shipCost;
+            }
+            document.getElementById('total-price').textContent = total.toFixed(2);
+            return total;
+        }
+
+        // 渲染板材列表
+        function renderItems() {
+            const container = document.getElementById('items-container');
+            if (items.length === 0) {
+                container.innerHTML = '<div class="card" style="text-align: center; padding: 30px; color: #999;">点击上方按钮添加板材</div>';
+                return;
+            }
+
+            container.innerHTML = items.map(item => {
+                const price = calculateItemPrice(item);
+                return `
+                    <div class="card" data-id="${item.id}">
+                        <div class="card-header">
+                            <span>📐 板材 ${item.id}</span>
+                            <button class="delete-btn" onclick="removeItem(${item.id})">×</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <select onchange="updateItem(${item.id}, 'material', this.value)">
+                                    ${Object.entries(materials).map(([key, mat]) =>
+                                        `<option value="${key}" ${item.material === key ? 'selected' : ''}>${mat.name} ¥${mat.price}/㎡</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <input type="number" value="${item.length}" placeholder="长(mm)" onchange="updateItem(${item.id}, 'length', parseFloat(this.value) || 0)">
+                                <input type="number" value="${item.width}" placeholder="宽(mm)" onchange="updateItem(${item.id}, 'width', parseFloat(this.value) || 0)">
+                            </div>
+                            <div class="form-row">
+                                <input type="number" value="${item.qty}" placeholder="数量" min="1" onchange="updateItem(${item.id}, 'qty', parseInt(this.value) || 1)">
+                            </div>
+                            <div class="form-row">
+                                <input type="number" value="${item.drill || 0}" placeholder="钻孔数" style="width: 100px;" onchange="updateItem(${item.id}, 'drill', parseInt(this.value) || 0)">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" ${item.edge ? 'checked' : ''} onchange="updateItem(${item.id}, 'edge', this.checked)">
+                                    封边 ¥10/米
+                                </label>
+                            </div>
+                            <div class="form-row">
+                                <select onchange="updateItem(${item.id}, 'sand', this.value || null)" style="width: auto;">
+                                    <option value="">无砂光</option>
+                                    <option value="single" ${item.sand === 'single' ? 'selected' : ''}>单面砂光 ¥10/㎡</option>
+                                    <option value="double" ${item.sand === 'double' ? 'selected' : ''}>双面砂光 ¥14/㎡</option>
+                                </select>
+                                <select onchange="updateItem(${item.id}, 'coat', this.value || null)" style="width: auto;">
+                                    <option value="">无涂装</option>
+                                    <option value="single" ${item.coat === 'single' ? 'selected' : ''}>单面涂装 ¥50/㎡</option>
+                                    <option value="double" ${item.coat === 'double' ? 'selected' : ''}>双面涂装 ¥100/㎡</option>
+                                </select>
+                            </div>
+                            <div class="item-subtotal">
+                                <span class="badge">材料 ¥${price.materialCost.toFixed(2)}</span>
+                                <span class="badge" style="margin-left: 8px;">加工 ¥${price.processCost.toFixed(2)}</span>
+                                <span class="price" style="margin-left: 12px;">¥${price.total.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            calculateTotal();
+        }
+
+        // 设置运费
+        function setShipCost(cost) {
+            shipCost = cost;
+            document.querySelectorAll('.ship-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector(`.ship-option[data-ship="${cost}"]`).classList.add('selected');
+            calculateTotal();
+        }
+
+        // 显示提示
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast' + (isError ? ' error' : '');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // 提交订单
+        async function submitOrder() {
+            const clientName = document.getElementById('client-name').value.trim();
+            if (!clientName) {
+                showToast('请填写客户姓名', true);
+                return;
+            }
+            if (items.length === 0) {
+                showToast('请至少添加一块板材', true);
+                return;
+            }
+
+            const orderData = {
+                client_name: clientName,
+                client_contact: document.getElementById('client-contact').value.trim(),
+                items: items,
+                ship_cost: shipCost === 'custom' ? 0 : shipCost
+            };
+
+            try {
+                const res = await fetch('/api/submit-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    showToast(`✅ 订单提交成功！订单号：${result.order_id}`);
+                    // 清空表单
+                    items = [];
+                    nextId = 1;
+                    document.getElementById('client-name').value = '';
+                    document.getElementById('client-contact').value = '';
+                    renderItems();
+                    calculateTotal();
+                } else {
+                    showToast('提交失败：' + (result.error || '未知错误'), true);
+                }
+            } catch (err) {
+                showToast('网络错误，请确保后端服务已启动', true);
+                console.error(err);
+            }
+        }
+
+        // 初始化
+        loadMaterials().then(() => {
+            addItem();
+        });
+    </script>
+</body>
+</html>
